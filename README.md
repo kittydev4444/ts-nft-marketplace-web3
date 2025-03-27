@@ -19,6 +19,8 @@ A full-stack NFT marketplace with listing, buying, and compliance features built
     - [Environment Variables](#environment-variables)
   - [Setup](#setup)
     - [Add Anvil to your metamask](#add-anvil-to-your-metamask)
+    - [Add Anvil accounts to your Metamask](#add-anvil-accounts-to-your-metamask)
+    - [Docker .env](#docker-env)
   - [Running the Application](#running-the-application)
 - [Database Reset](#database-reset)
 - [Features](#features)
@@ -34,12 +36,12 @@ A full-stack NFT marketplace with listing, buying, and compliance features built
     - You'll know you've installed it right if you can run `pnpm --version` and get a response like `8.0.0`
 - [git](https://git-scm.com/downloads)
     - You'll know you've installed it right if you can run `git --version` and get a response like `git version 2.33.0`
-- [foundry](https://book.getfoundry.sh/)
-    - For running a local Ethereum blockchain with `anvil`
+- [foundry/anvil](https://book.getfoundry.sh/)
+    - You'll know you've installed it right if you can run `anvil --version` and get a response like `anvil Version: 1.0.0-stable`
 - [docker](https://www.docker.com/get-started/)
-    - For running the indexer database
+    - You'll know you've installed it right if you can run `docker --version` and get a response like `Docker version 27.4.0, build bde2b89`
 - [rindexer](https://github.com/joshstevens19/rindexer)
-    - For indexing blockchain events into a queryable database
+    - ou'll know you've installed it right if you can run `rindexer --version` and get a response like `rindexer 0.15.2`
 
 ### Environment Variables
 
@@ -48,12 +50,14 @@ Create a `.env.local` file with the following environment variables:
 ```
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 GRAPHQL_API_URL=http://localhost:3001/graphql
+ENABLE_COMPLIANCE_CHECK=false
 CIRCLE_API_KEY=TEST_API_KEY
 ```
 
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`: Get this from [WalletConnect Cloud](https://cloud.walletconnect.com/)
 - `GRAPHQL_API_URL`: Points to your local indexer GraphQL endpoint
-- `CIRCLE_API_KEY`: Get this from [Circle Developer Portal](https://developers.circle.com/w3s/smart-contract-platform)
+- `ENABLE_COMPLIANCE_CHECK`: To enable compliance checks, set this to `true`. If you set this to false, you don't need the `CIRCLE_API_KEY`
+- `CIRCLE_API_KEY`: Get this from [Circle Developer Portal](https://console.circle.com/api-keys)
 
 ## Setup
 
@@ -63,9 +67,6 @@ cd nft-marketplace
 pnpm install
 ```
 
-When you run `anvil`, you'll get some private keys. 
-
-
 ### Add Anvil to your metamask
 
 Add the following network to your metamask:
@@ -74,13 +75,34 @@ Add the following network to your metamask:
 - Chain ID: 31337
 - Currency Symbol: ETH
 
-Add then, anvil account 0 and anvil account 9 to your metamask, and you'll see you already have some NFTs!
+### Add Anvil accounts to your Metamask
+
+```
+Private Keys
+==================
+
+(0) 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # This one
+(9) 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 # This one
+```
+
+Add private keys `0` and `9` to your Metamask, these will have NFTs already loaded when you run `pnpm anvil` later. 
+
+### Docker .env
+
+For working with a postgres DB, add a `.env` file to `./marketplaceIndexer/.env`:
+
+```
+DATABASE_URL=postgresql://postgres:rindexer@localhost:5440/postgres
+POSTGRES_PASSWORD=rindexer
+```
+
+This will work with the default commands we run below. If you wish to change your database, you may change your endpoints.
 
 ## Running the Application
 
 The application requires three components running in parallel:
 
-- Local Ethereum blockchain (anvil)
+- Local Ethereum blockchain (anvil), this will come with some blockchain state already loaded. Including contracts, tokens, and NFTs in the accounts you added to Metamask above.
 - Blockchain indexer
 - Next.js application
 
@@ -90,7 +112,13 @@ pnpm indexer
 pnpm run dev
 ```
 
-Make sure you have a wallet (like MetaMask) connected to your anvil instance with the address that has some mock tokens.
+In your Metamask now, select account 0 which you imported from the step above, and add the following NFT with tokenID 0:
+
+```
+0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+```
+
+You should see the NFT in your metamask. Note: This will only work while `pnpm anvil` is running!
 
 # Database Reset
 If you need to reset the indexer database:

@@ -9,6 +9,20 @@ export async function POST(request: Request) {
             return Response.json({ success: false, message: "Address is required" }, { status: 400 });
         }
 
+        const complianceEnabled = process.env.ENABLE_COMPLIANCE_CHECK === 'true';
+
+        if (!complianceEnabled) {
+            console.log("Compliance checking disabled, automatically approving address:", address);
+            return Response.json({
+                success: true,
+                isApproved: true,
+                data: {
+                    result: "APPROVED",
+                    message: "Compliance checking is disabled"
+                }
+            });
+        }
+
         // Generate a new UUID for each request
         const idempotencyKey = uuidv4();
 
@@ -33,11 +47,12 @@ export async function POST(request: Request) {
             body: JSON.stringify({
                 idempotencyKey,
                 address,
-                chain: "ETH" // Always ETH as specified
+                chain: "ETH-SEPOLIA"
             })
         });
 
         const data = await response.json();
+        console.log(data)
 
         // Check if the address is approved
         const isApproved = data?.data?.result === "APPROVED";
