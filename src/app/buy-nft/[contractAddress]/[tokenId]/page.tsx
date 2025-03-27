@@ -22,6 +22,8 @@ export default function BuyNftPage() {
     }
     const { address } = useAccount()
     const chainId = useChainId()
+    const [isCompliant, setIsCompliant] = useState<boolean | null>(null);
+    const [isCheckingCompliance, setIsCheckingCompliance] = useState(false);
 
     const marketplaceAddress =
         (chainsToContracts[chainId]?.nftMarketplace as `0x${string}`) || "0x"
@@ -107,6 +109,34 @@ export default function BuyNftPage() {
         }
     }
 
+    const checkCompliance = async () => {
+        if (!address) return;
+
+        setIsCheckingCompliance(true);
+
+        try {
+            const response = await fetch('/api/compliance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address }),
+            });
+
+            const result = await response.json();
+            setIsCompliant(result.success && result.isApproved);
+        } catch (error) {
+            console.error("Compliance check error:", error);
+            setIsCompliant(false);
+        } finally {
+            setIsCheckingCompliance(false);
+        }
+    };
+
+    useEffect(() => {
+        if (address) {
+            checkCompliance();
+        }
+    }, [address]);
+
     // Redirect to home if purchase is successful
     useEffect(() => {
         if (step === 3 && isPurchaseSuccess) {
@@ -128,197 +158,212 @@ export default function BuyNftPage() {
         <div className="min-h-screen bg-zinc-50 flex flex-col">
             <main className="flex-1 container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-bold mb-6">Buy NFT</h1>
+                    <h1 className="text-3xl font-bold mb-6 text-gray-700">Buy NFT</h1>
 
                     {/* Connection Status */}
-                    {!address ? (
-                        <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
-                            <p className="text-lg text-zinc-600 mb-4">
-                                Connect your wallet to purchase this NFT
-                            </p>
-                            <div className="flex justify-center">
-                                <ConnectButton />
+                    {
+                        isCheckingCompliance ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-zinc-600">Checking compliance...</p>
                             </div>
-                        </div>
-                    ) : !chainSupported ? (
-                        <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
-                            <p className="text-lg text-red-600 mb-4">
-                                The current network is not supported. Please switch to a supported
-                                network.
-                            </p>
-                            <div className="flex justify-center">
-                                <ConnectButton />
+                        ) : isCompliant === false ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-red-600 font-medium">Your address has been blocked due to compliance restrictions.</p>
+                                <button
+                                    onClick={() => router.push('/')}
+                                    className="mt-4 py-2 px-4 bg-blue-600 text-white rounded-md"
+                                >
+                                    Back to Home
+                                </button>
                             </div>
-                        </div>
-                    ) : isListingLoading ? (
-                        <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
-                            <p className="text-lg text-zinc-600">Loading NFT details...</p>
-                        </div>
-                    ) : !isListed ? (
-                        <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
-                            <p className="text-lg text-red-600 mb-4">
-                                This NFT is not currently listed for sale.
-                            </p>
-                            <button
-                                onClick={() => router.push("/")}
-                                className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
-                            >
-                                Back to Home
-                            </button>
-                        </div>
-                    ) : isSeller ? (
-                        <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
-                            <p className="text-lg text-orange-600 mb-4">
-                                You are the seller of this NFT.
-                            </p>
-                            <button
-                                onClick={() => router.push("/")}
-                                className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
-                            >
-                                Back to Home
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
-                            {step === 1 && (
-                                <div className="space-y-6">
-                                    <h2 className="text-xl font-semibold">NFT Details</h2>
-
-                                    <div className="flex flex-col md:flex-row gap-8">
-                                        <div className="md:w-1/3">
-                                            <NFTBox
-                                                tokenId={tokenId}
-                                                contractAddress={contractAddress}
-                                                price={price}
-                                            />
-                                        </div>
-
-                                        <div className="md:w-2/3 space-y-4">
-                                            <div>
-                                                <h3 className="text-sm font-medium text-gray-500">
-                                                    Contract Address
-                                                </h3>
-                                                <p className="mt-1 text-sm text-gray-900 break-all">
-                                                    {contractAddress}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <h3 className="text-sm font-medium text-gray-500">
-                                                    Token ID
-                                                </h3>
-                                                <p className="mt-1 text-sm text-gray-900">
-                                                    {tokenId}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <h3 className="text-sm font-medium text-gray-500">
-                                                    Seller
-                                                </h3>
-                                                <p className="mt-1 text-sm text-gray-900 break-all">
-                                                    {seller}
-                                                </p>
-                                            </div>
-
-                                            <div className="pt-4">
-                                                <button
-                                                    onClick={handleApprove}
-                                                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                                    disabled={isApprovalPending}
-                                                >
-                                                    {isApprovalPending
-                                                        ? "Approving..."
-                                                        : "Approve Payment Token"}
-                                                </button>
-
-                                                {approvalError && (
-                                                    <div className="p-4 bg-red-50 text-red-700 rounded-md mt-4">
-                                                        {approvalError.message}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                        ) : !address ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-lg text-zinc-600 mb-4">
+                                    Connect your wallet to purchase this NFT
+                                </p>
+                                <div className="flex justify-center">
+                                    <ConnectButton />
                                 </div>
-                            )}
-
-                            {step === 2 && (
-                                <div className="space-y-6">
-                                    <h2 className="text-xl font-semibold">Complete Purchase</h2>
-
-                                    {isApprovalSuccess ? (
-                                        <>
-                                            <div className="p-4 bg-green-50 text-green-700 rounded-md">
-                                                Payment token approved! You can now complete the
-                                                purchase.
-                                            </div>
-
-                                            <div className="flex flex-col md:flex-row gap-8">
-                                                <div className="md:w-1/3">
-                                                    <NFTBox
-                                                        tokenId={tokenId}
-                                                        contractAddress={contractAddress}
-                                                        price={price}
-                                                    />
-                                                </div>
-
-                                                <div className="md:w-2/3 space-y-4">
-                                                    <button
-                                                        onClick={handleBuy}
-                                                        className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                                        disabled={isPurchasePending}
-                                                    >
-                                                        {isPurchasePending
-                                                            ? "Processing..."
-                                                            : "Buy Now"}
-                                                    </button>
-
-                                                    {purchaseError && (
-                                                        <div className="p-4 bg-red-50 text-red-700 rounded-md mt-4">
-                                                            {purchaseError.message}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="p-4 bg-blue-50 text-blue-700 rounded-md">
-                                            Waiting for approval transaction to be confirmed...
-                                        </div>
-                                    )}
+                            </div>
+                        ) : !chainSupported ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-lg text-red-600 mb-4">
+                                    The current network is not supported. Please switch to a supported
+                                    network.
+                                </p>
+                                <div className="flex justify-center">
+                                    <ConnectButton />
                                 </div>
-                            )}
+                            </div>
+                        ) : isListingLoading ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-lg text-zinc-600">Loading NFT details...</p>
+                            </div>
+                        ) : !isListed ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-lg text-red-600 mb-4">
+                                    This NFT is not currently listed for sale.
+                                </p>
+                                <button
+                                    onClick={() => router.push("/")}
+                                    className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
+                                >
+                                    Back to Home
+                                </button>
+                            </div>
+                        ) : isSeller ? (
+                            <div className="p-8 bg-white rounded-xl shadow-sm border border-zinc-200 text-center">
+                                <p className="text-lg text-orange-600 mb-4">
+                                    You are the seller of this NFT.
+                                </p>
+                                <button
+                                    onClick={() => router.push("/")}
+                                    className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
+                                >
+                                    Back to Home
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
+                                {step === 1 && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-semibold">NFT Details</h2>
 
-                            {step === 3 && (
-                                <div className="space-y-6">
-                                    <h2 className="text-xl font-semibold">Purchase Complete</h2>
-
-                                    {isPurchaseSuccess ? (
-                                        <>
-                                            <div className="p-4 bg-green-50 text-green-700 rounded-md">
-                                                Congratulations! You have successfully purchased
-                                                this NFT. You will be redirected to the homepage in
-                                                a few seconds.
-                                            </div>
-
-                                            <div className="mx-auto w-64">
+                                        <div className="flex flex-col md:flex-row gap-8">
+                                            <div className="md:w-1/3">
                                                 <NFTBox
                                                     tokenId={tokenId}
                                                     contractAddress={contractAddress}
                                                     price={price}
                                                 />
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="p-4 bg-blue-50 text-blue-700 rounded-md">
-                                            Waiting for purchase transaction to be confirmed...
+
+                                            <div className="md:w-2/3 space-y-4">
+                                                <div>
+                                                    <h3 className="text-sm font-medium text-gray-500">
+                                                        Contract Address
+                                                    </h3>
+                                                    <p className="mt-1 text-sm text-gray-900 break-all">
+                                                        {contractAddress}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="text-sm font-medium text-gray-500">
+                                                        Token ID
+                                                    </h3>
+                                                    <p className="mt-1 text-sm text-gray-900">
+                                                        {tokenId}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="text-sm font-medium text-gray-500">
+                                                        Seller
+                                                    </h3>
+                                                    <p className="mt-1 text-sm text-gray-900 break-all">
+                                                        {seller}
+                                                    </p>
+                                                </div>
+
+                                                <div className="pt-4">
+                                                    <button
+                                                        onClick={handleApprove}
+                                                        className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                        disabled={isApprovalPending}
+                                                    >
+                                                        {isApprovalPending
+                                                            ? "Approving..."
+                                                            : "Approve Payment Token"}
+                                                    </button>
+
+                                                    {approvalError && (
+                                                        <div className="p-4 bg-red-50 text-red-700 rounded-md mt-4">
+                                                            {approvalError.message}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                    </div>
+                                )}
+
+                                {step === 2 && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-semibold">Complete Purchase</h2>
+
+                                        {isApprovalSuccess ? (
+                                            <>
+                                                <div className="p-4 bg-green-50 text-green-700 rounded-md">
+                                                    Payment token approved! You can now complete the
+                                                    purchase.
+                                                </div>
+
+                                                <div className="flex flex-col md:flex-row gap-8">
+                                                    <div className="md:w-1/3">
+                                                        <NFTBox
+                                                            tokenId={tokenId}
+                                                            contractAddress={contractAddress}
+                                                            price={price}
+                                                        />
+                                                    </div>
+
+                                                    <div className="md:w-2/3 space-y-4">
+                                                        <button
+                                                            onClick={handleBuy}
+                                                            className="w-full py-3 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                            disabled={isPurchasePending}
+                                                        >
+                                                            {isPurchasePending
+                                                                ? "Processing..."
+                                                                : "Buy Now"}
+                                                        </button>
+
+                                                        {purchaseError && (
+                                                            <div className="p-4 bg-red-50 text-red-700 rounded-md mt-4">
+                                                                {purchaseError.message}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="p-4 bg-blue-50 text-blue-700 rounded-md">
+                                                Waiting for approval transaction to be confirmed...
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {step === 3 && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-semibold">Purchase Complete</h2>
+
+                                        {isPurchaseSuccess ? (
+                                            <>
+                                                <div className="p-4 bg-green-50 text-green-700 rounded-md">
+                                                    Congratulations! You have successfully purchased
+                                                    this NFT. You will be redirected to the homepage in
+                                                    a few seconds.
+                                                </div>
+
+                                                <div className="mx-auto w-64">
+                                                    <NFTBox
+                                                        tokenId={tokenId}
+                                                        contractAddress={contractAddress}
+                                                        price={price}
+                                                    />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="p-4 bg-blue-50 text-blue-700 rounded-md">
+                                                Waiting for purchase transaction to be confirmed...
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                 </div>
             </main>
 
