@@ -9,7 +9,7 @@ export async function POST(request: Request) {
             return Response.json({ success: false, message: "Address is required" }, { status: 400 });
         }
 
-        const complianceEnabled = process.env.ENABLE_COMPLIANCE_CHECK === 'true';
+        const complianceEnabled = process.env.ENABLE_COMPLIANCE_CHECK && process.env.ENABLE_COMPLIANCE_CHECK === 'true';
 
         if (!complianceEnabled) {
             console.log("Compliance checking disabled, automatically approving address:", address);
