@@ -1,18 +1,18 @@
 // app/buy-nft/[contractAddress]/[tokenId]/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import NFTBox from "@/components/NFTBox"
+import { chainsToContracts, erc20Abi, marketplaceAbi } from "@/constants"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
     useAccount,
     useChainId,
-    useWriteContract,
     useReadContract,
     useWaitForTransactionReceipt,
+    useWriteContract,
 } from "wagmi"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { chainsToContracts, erc20Abi, marketplaceAbi } from "@/constants"
-import NFTBox from "@/components/NFTBox"
 
 export default function BuyNftPage() {
     const router = useRouter()
