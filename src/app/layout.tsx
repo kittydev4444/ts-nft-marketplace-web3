@@ -1,7 +1,8 @@
-import type { Metadata } from "next"
-import "./globals.css"
+import ComplianceGuard from "@/components/ComplianceGuard"
 import Header from "@/components/Header"
+import type { Metadata } from "next"
 import { type ReactNode } from "react"
+import "./globals.css"
 import { Providers } from "./providers"
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function RootLayout(props: { children: ReactNode }) {
             <body className="bg-zinc-50">
                 <Providers>
                     <Header />
-                    {props.children}
+                    <ComplianceGuard>{props.children}</ComplianceGuard>
                 </Providers>
             </body>
         </html>

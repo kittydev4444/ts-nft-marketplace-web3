@@ -43,4 +43,5 @@ broadcast/
 .env.local
 .example.request
 
+curl.sh
 marketplaceIndexer/generated_csv/
